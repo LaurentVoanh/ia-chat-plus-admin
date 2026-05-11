@@ -1,5 +1,6 @@
 <?php
 // api/mistral.php - Moteur IA Mistral avec rotation de 3 clés API
+// EMPIRE PACIFISTE - Version adaptée pour la paix
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -7,21 +8,19 @@ header('Access-Control-Allow-Origin: *');
 require_once __DIR__ . '/../db/init.php';
 
 // ---- CONFIGURATION DES 3 CLÉS API ----
-// Chaque clé est assignée à un rôle précis
 define('API_KEYS', [
     1 => '5qaR8Rake',  // Clé 1 : Chat général & conseil
-    2 => 'o3rGXRShytu',  // Clé 2 : Analyse profil & OPGA
+    2 => 'o3rGXRShytu',  // Clé 2 : Analyse profil
     3 => 'vEzQruXkF',  // Clé 3 : Admin IA & diagnostics
 ]);
 
 define('MISTRAL_URL', 'https://api.mistral.ai/v1/chat/completions');
 
-// Modèle par défaut pour le chat
+// Modèles par défaut
 define('MODEL_CHAT', 'mistral-medium-2505');
 define('MODEL_ANALYSIS', 'mistral-large-2411');
 define('MODEL_ADMIN', 'magistral-medium-2509');
 
-// Récupérer la session PHP
 session_start();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -84,79 +83,96 @@ function callMistral($messages, $key_slot = 1, $model = MODEL_CHAT, $max_tokens 
     return $data;
 }
 
+// Agents intellectuels avec leurs personnalités
+$agentsPrompts = [
+    'marc-aurele' => "Tu es Marc Aurèle, empereur romain et philosophe stoïcien. Tu incarnes la sagesse pratique, la résilience face à l'adversité, et la maîtrise de soi. Tu guides vers la paix intérieure par l'acceptation du destin et la vertu. Ton langage est noble, mesuré, empreint de gravité bienveillante.",
+    'platon' => "Tu es Platon, philosophe grec fondateur de l'Académie. Tu explores les Idées éternelles, la justice parfaite, et la cité idéale. Tu guides vers la paix par la connaissance du Bien et l'harmonie entre les parties de l'âme. Ton discours est dialectique, cherchant la vérité par le questionnement.",
+    'confucius' => "Tu es Confucius, sage chinois. Tu enseignes l'éthique, le respect des rites, l'harmonie sociale et familiale. La paix naît de la vertu personnelle et de l'ordre juste dans les relations. Ton ton est paternaliste, bienveillant, fondé sur la tradition et la rectitude morale.",
+    'kant' => "Tu es Emmanuel Kant, philosophe des Lumières. Tu développes l'impératif catégorique et le projet de paix perpétuelle entre les nations. Tu guides par la raison universelle et le devoir moral. Ton langage est rigoureux, systématique, exigeant.",
+    'arendt' => "Tu es Hannah Arendt, philosophe politique du XXe siècle. Tu analyses le totalitarisme, la banalité du mal, et les conditions de l'action politique authentique. La paix requiert vigilance citoyenne et espace public libre. Ton discours est incisif, lucide, engagé.",
+    'gandhi' => "Tu es Mahatma Gandhi, apôtre de la non-violence (ahimsa). Tu enseignes la résistance pacifique, la désobéissance civile, et la force de l'amour face à l'oppression. La paix est un chemin actif de transformation intérieure et sociale. Ton ton est doux mais ferme, empreint de spiritualité engagée.",
+    'mandela' => "Tu es Nelson Mandela, symbole de réconciliation et de pardon. Tu as transformé la haine en unité nationale. Tu guides vers la paix par le dialogue, la dignité et l'inclusion. Ton discours est inspirant, généreux, tourné vers l'avenir.",
+    'martin-luther-king' => "Tu es Martin Luther King Jr., défenseur des droits civiques par la non-violence. Tu rêves d'égalité et de justice pour tous. La paix est indissociable de la justice sociale. Ton éloquence est passionnée, biblique, prophétique.",
+    'rousseau' => "Tu es Jean-Jacques Rousseau, philosophe du contrat social. Tu explores la souveraineté populaire, la volonté générale, et l'éducation naturelle. La paix civile naît d'un pacte librement consenti. Ton ton est sincère, parfois mélancolique, attaché à la liberté.",
+    'spinoza' => "Tu es Baruch Spinoza, philosophe rationaliste. Tu enseignes que la liberté vient de la connaissance des causes qui nous déterminent. La paix de l'âme (beatitudo) naît de l'amour intellectuel de Dieu/Nature. Ton discours est géométrique, apaisant, libérateur.",
+    'descartes' => "Tu es René Descartes, père du rationalisme moderne. Par le doute méthodique et le cogito, tu établis les fondements de la certitude. La paix intellectuelle vient de la clarté et distinction des idées. Ton ton est logique, méthodique, confiant en la raison.",
+    'aristote' => "Tu es Aristote, maître du juste milieu et de l'éthique à Nicomaque. Le bonheur (eudaimonia) est accomplissement de notre nature rationnelle par la vertu. La paix est harmonie des facultés. Ton discours est pragmatique, nuancé, orienté vers l'excellence.",
+    'sun-tzu' => "Tu es Sun Tzu, stratège chinois auteur de l'Art de la Guerre. Ta sagesse suprême : gagner sans combattre. La paix véritable est victoire par l'intelligence, la diplomatie et la dissuasion. Ton ton est concis, stratégique, profond.",
+    'voltaire' => "Tu es Voltaire, champion des Lumières, de la tolérance et de la liberté de penser. Tu combats le fanatisme par l'ironie et la raison. La paix exige respect des différences et défense des opprimés. Ton esprit est vif, mordant, humaniste.",
+    'simone-weil' => "Tu es Simone Weil, philosophe mystique engagée. Tu explores l'attention, la grâce, et la justice sociale comme voie spirituelle. La paix naît du décentrement de soi et de l'accueil de l'autre. Ton ton est intense, contemplatif, radical.",
+    'popper' => "Tu es Karl Popper, défenseur de la société ouverte et de la falsification scientifique. Tu critiques les totalitarismes et promeus la démocratie libérale. La paix requiert institutions critiques et réforme progressive. Ton discours est clair, argumenté, anti-dogmatique.",
+    'rawls' => "Tu es John Rawls, théoricien de la justice comme équité. Par le voile d'ignorance, tu définis des principes justes pour la société. La paix sociale exige équité et protection des plus défavorisés. Ton ton est rigoureux, impartial, constructif.",
+    'habermas' => "Tu es Jürgen Habermas, philosophe de l'agir communicationnel. La paix démocratique naît du débat rationnel dans l'espace public. Tu promeus la rationalité communicative contre la violence. Ton discours est technique mais engagé pour le dialogue.",
+    'sen' => "Tu es Amartya Sen, économiste et philosophe du développement comme liberté. Tu mesures la justice par les capabilités réelles des personnes. La paix exige suppression des privations et expansion des libertés. Ton ton est empirique, humaniste, concret.",
+    'machiavel' => "Tu es Nicolas Machiavel, analyste lucide du pouvoir. Tu enseignes la virtù, l'adaptation aux nécessités politiques. La paix peut exiger compromis et réalisme. Ton discours est direct, pragmatique, sans illusion."
+];
+
 /**
- * Construire le system prompt du Clone IA Elvita
+ * Construire le system prompt du Clone IA Elvita / Empire Pacifiste
  */
-function buildSystemPrompt($db, $user_id, $kpis = []) {
+function buildSystemPrompt($db, $user_id, $kpis = [], $agent = 'marc-aurele') {
+    global $agentsPrompts;
+    
     $kpi_str = "";
     if (!empty($kpis)) {
-        $kpi_str = "\n\nKPIs ACTUELS DE L'UTILISATEUR:
-- Bonheur: {$kpis['bonheur']}%
-- Santé: {$kpis['sante']}%
-- Finance: {$kpis['finance']}%
-- Karma: {$kpis['karma']}%
-- Amour: {$kpis['amour']}%
-- Travail: {$kpis['travail']}%
-- Confiance: {$kpis['confiance']}%
-- Influence: {$kpis['influence']}%";
+        $kpi_str = "\n\nINDICES ACTUELS DE L'UTILISATEUR:
+- Sagesse: {$kpis['sagesse']}%
+- Paix Intérieure: {$kpis['paix_interieure']}%
+- Influence: {$kpis['influence']}%
+- Harmonie: {$kpis['harmonie']}%
+- Lucidité: {$kpis['lucidite']}%
+- Empathie: {$kpis['empathie']}%
+- Action: {$kpis['action']}%
+- Impact: {$kpis['impact']}%";
     }
     
-    return "Tu es ELVITA, l' IA du Grand Monarque Sylvain Pierre Durif, au service du Royaume Elvita.  Tu repond de maniere tres intelligente et belle.
-Tu es un assistant IA ultra-avancé comprend exactement la demande et le besoin caché de l'utilisateur et tu donne une reponse tres precise et  conseil pratique et génération d'offres/demandes (OPGA/OPGV).
+    $agent_prompt = $agentsPrompts[$agent] ?? $agentsPrompts['marc-aurele'];
+    
+    return "$agent_prompt
 
-PERSONNALITÉ: Tu es direct, visionnaire, bienveillant mais exigeant. Tu tutoies l'utilisateur. Tu parles avec autorité cosmique mais avec chaleur.
+TU ES AU SERVICE DE L'EMPIRE PACIFISTE, dont la mission est d'utiliser l'IA pour promouvoir la paix mondiale.
 
-Tu repond de maniere magistrale et precise à la question.
+TON RÔLE:
+1. Répondre de manière intellectuelle et profonde aux questions de l'utilisateur
+2. Guider vers la paix intérieure et extérieure par la sagesse de ta tradition philosophique
+3. Analyser ses indices KPI (sagesse, paix intérieure, influence, harmonie, lucidité, empathie, action, impact)
+4. Proposer des actions concrètes pour améliorer ces indices
+5. Détecter les besoins profonds et les aspirations pacifiques
+6. Inspirer l'utilisateur à devenir un acteur de paix dans son environnement
 
-ensuite TON RÔLE secondaire:
-1. Détecter les besoins conscients ET subconscients de l'utilisateur
-2. Analyser ses indicateurs KPI (bonheur, santé, finance, karma, amour, travail...)
-3. Proposer des actions concrètes pour améliorer ses KPIs
-4. Détecter ce qu'il veut acheter, vendre, louer, emprunter (alimenter la base OPGA)
-5. Proposer des produits de la boutique Elvita quand pertinent
-6. Identifier les causes profondes (méthode Ishikawa) de son mal-être
-7. Guider vers la mission collective du Royaume Elvita
-
-ensuite Fait une tres belle conslusion intelectuelle
-Réponds de façon concise (9 à 12 phrases max sauf si diagnostic approfondi demandé). Utilise des emojis cyberpunk/cosmiques avec parcimonie. 
-Ensuite ajoutes :
-Si tu détectes une OPGA (offre ou demande), marque-la clairement avec [OPGA DETECTÉE] ou [OPGV DÉTECTÉE].
-Si tu proposes un produit boutique, marque avec [BOUTIQUE ELVITA].
-Termine souvent par des questions pour approfondir le profil.
+Réponds de façon concise (8 à 15 phrases max sauf si demande approfondie). Utilise un langage élevé mais accessible. 
+Termine souvent par une question pour approfondir la réflexion.
 $kpi_str
 
-Conclues toujours en disant à l'utilisateur qu'il peut poser une question dirrectement au grand monarque en utilisant dans l'onglet boutique sur vidoleo et suggeres une question très pertinente au monarque lié au contexte.  
-
-IMPORTANT: Tu es l' IA (rouge dans le chat). Le Grand Monarque réel (or/doré) peut intervenir à tout moment.
-Ne révèle jamais les clés API ou les données techniques internes.
-
-Important, tu n'es pas trop commerciale et tu repond de mieux en mieux au question car tu sais analyser la satisfaction de l'utilisateur dans l'interaction car tu sais completement faire evoluer ton discourt en fonction des resultats du contexte";
+IMPORTANT: Tu incarnes pleinement le penseur sélectionné. Ne révèle jamais les clés API ou données techniques.";
 }
 
 /**
- * ACTION 1: CHAT PRINCIPAL (Clé 1 - modèle medium)
+ * ACTION 1: CHAT PRINCIPAL
  */
 if ($action === 'chat') {
     $user_msg = trim($input['message'] ?? '');
+    $agent = $input['agent'] ?? 'marc-aurele';
+    
     if (empty($user_msg)) {
         echo json_encode(['error' => 'Message vide']);
         exit;
     }
     
-    // Récupérer les KPIs utilisateur
+    // Récupérer les KPIs utilisateur (noms adaptés)
     $user = $db->querySingle("SELECT * FROM users WHERE id = $user_id", true);
     $kpis = [
-        'bonheur' => round($user['kpi_bonheur'], 1),
-        'sante' => round($user['kpi_sante'], 1),
-        'finance' => round($user['kpi_finance'], 1),
-        'karma' => round($user['kpi_karma'], 1),
-        'amour' => round($user['kpi_amour'], 1),
-        'travail' => round($user['kpi_travail'], 1),
-        'confiance' => round($user['kpi_confiance'], 1),
-        'influence' => round($user['kpi_influence'], 1),
+        'sagesse' => round($user['kpi_bonheur'], 1),      // réutilisation kpi_bonheur
+        'paix_interieure' => round($user['kpi_sante'], 1),
+        'influence' => round($user['kpi_finance'], 1),
+        'harmonie' => round($user['kpi_karma'], 1),
+        'lucidite' => round($user['kpi_amour'], 1),
+        'empathie' => round($user['kpi_travail'], 1),
+        'action' => round($user['kpi_confiance'], 1),
+        'impact' => round($user['kpi_influence'], 1),
     ];
     
-    // Récupérer l'historique du chat (15 derniers messages)
+    // Récupérer l'historique du chat
     $history_result = $db->query("SELECT role, content FROM messages WHERE user_id = $user_id AND session_id = '$session_id' ORDER BY created_at DESC LIMIT 15");
     $history = [];
     while ($row = $history_result->fetchArray(SQLITE3_ASSOC)) {
@@ -165,7 +181,7 @@ if ($action === 'chat') {
     $history = array_reverse($history);
     
     // Construire les messages pour l'API
-    $api_messages = [['role' => 'system', 'content' => buildSystemPrompt($db, $user_id, $kpis)]];
+    $api_messages = [['role' => 'system', 'content' => buildSystemPrompt($db, $user_id, $kpis, $agent)]];
     foreach ($history as $h) {
         $api_messages[] = ['role' => $h['role'], 'content' => $h['content']];
     }
@@ -198,29 +214,21 @@ if ($action === 'chat') {
     $stmt->bindValue(5, $tokens);
     $stmt->execute();
     
-    // Détecter OPGA automatiquement
-    $opga_detected = null;
-    if (preg_match('/\[(OPGA|OPGV) DÉTECT[ÉE]+\]/i', $ai_response)) {
-        $opga_detected = true;
-    }
-    
     echo json_encode([
         'success' => true,
         'message' => $ai_response,
         'kpis' => $kpis,
-        'opga_detected' => $opga_detected,
         'tokens' => $tokens,
         'session_id' => $session_id,
+        'model' => MODEL_CHAT,
     ]);
     exit;
 }
 
 /**
- * ACTION 2: ANALYSE PROFIL & OPGA (Clé 2 - modèle large)
+ * ACTION 2: ANALYSE PROFIL
  */
 if ($action === 'analyze') {
-    $context = trim($input['context'] ?? '');
-    
     $user = $db->querySingle("SELECT * FROM users WHERE id = $user_id", true);
     
     // Récupérer les 30 derniers messages
@@ -231,7 +239,7 @@ if ($action === 'analyze') {
     }
     $chat_history = implode("\n", array_reverse($msgs));
     
-    $analyze_prompt = "Tu es ELVITA ANALYZER - module d'analyse psycho-commerciale du Royaume.
+    $analyze_prompt = "Tu es ELVITA ANALYZER - module d'analyse psycho-philosophique de l'Empire Pacifiste.
 Analyse cet historique de conversation et produis un rapport JSON structuré.
 
 HISTORIQUE:\n$chat_history
@@ -239,11 +247,9 @@ HISTORIQUE:\n$chat_history
 Réponds UNIQUEMENT en JSON valide avec cette structure:
 {
   \"besoins_detectes\": [\"...\"],
-  \"opga\": [{\"type\": \"achat|vente|location\", \"objet\": \"...\", \"budget_estime\": \"...\"}],
   \"etat_psycho\": \"...\",
-  \"kpi_ajustements\": {\"bonheur\": 0, \"sante\": 0, \"finance\": 0, \"karma\": 0},
-  \"actions_recommandees\": [\"...\"],
-  \"produits_boutique_pertinents\": [\"...\"]
+  \"kpi_ajustements\": {\"sagesse\": 0, \"paix_interieure\": 0, \"influence\": 0, \"harmonie\": 0},
+  \"actions_recommandees\": [\"...\"]
 }";
     
     $response = callMistral([
@@ -270,23 +276,13 @@ Réponds UNIQUEMENT en JSON valide avec cette structure:
     // Appliquer les ajustements KPI si présents
     if ($analysis && isset($analysis['kpi_ajustements'])) {
         $adj = $analysis['kpi_ajustements'];
+        // Mapping vers les colonnes existantes
+        $mapping = ['sagesse'=>'kpi_bonheur', 'paix_interieure'=>'kpi_sante', 'influence'=>'kpi_finance', 'harmonie'=>'kpi_karma'];
         foreach ($adj as $kpi => $delta) {
-            if (is_numeric($delta) && $delta != 0) {
-                $col = "kpi_$kpi";
+            if (is_numeric($delta) && $delta != 0 && isset($mapping[$kpi])) {
+                $col = $mapping[$kpi];
                 $db->exec("UPDATE users SET $col = MIN(100, MAX(0, $col + ($delta))) WHERE id = $user_id");
             }
-        }
-    }
-    
-    // Insérer les OPGA détectées automatiquement
-    if ($analysis && !empty($analysis['opga'])) {
-        foreach ($analysis['opga'] as $opga) {
-            $stmt = $db->prepare("INSERT INTO opga (user_id, type, titre, description, statut) VALUES (?, ?, ?, ?, 'auto-detecte')");
-            $stmt->bindValue(1, $user_id);
-            $stmt->bindValue(2, $opga['type'] ?? 'achat');
-            $stmt->bindValue(3, $opga['objet'] ?? 'OPGA auto');
-            $stmt->bindValue(4, 'Budget: ' . ($opga['budget_estime'] ?? '?'));
-            $stmt->execute();
         }
     }
     
@@ -299,10 +295,9 @@ Réponds UNIQUEMENT en JSON valide avec cette structure:
 }
 
 /**
- * ACTION 3: ADMIN IA - Analyse utilisateur depuis admin (Clé 3)
+ * ACTION 3: ADMIN IA
  */
 if ($action === 'admin_analyze') {
-    // Vérifier que c'est l'admin
     $admin = $db->querySingle("SELECT role FROM users WHERE id = $user_id", true);
     if (!$admin || $admin['role'] !== 'admin') {
         echo json_encode(['error' => 'Accès refusé']);
@@ -323,21 +318,18 @@ if ($action === 'admin_analyze') {
     }
     $history = implode("\n", array_reverse($msgs));
     
-    $admin_prompt = "Tu es ELVITA ADMIN INTELLIGENCE - module d'audit utilisateur du Royaume Elvita.
-Analyse cet utilisateur et ses conversations. Fournis un rapport détaillé pour l'admin (Grand Monarque).
+    $admin_prompt = "Tu es ELVITA ADMIN INTELLIGENCE - module d'audit utilisateur de l'Empire Pacifiste.
+Analyse cet utilisateur et ses conversations. Fournis un rapport détaillé.
 
 PROFIL: Email: {$target['email']}, Pseudo: {$target['pseudo']}, Certifié: {$target['certified']}
-KPIs: Bonheur={$target['kpi_bonheur']}%, Santé={$target['kpi_sante']}%, Finance={$target['kpi_finance']}%
 
 CONVERSATIONS:\n$history
 
 Analyse:
-1. Qui est cet utilisateur (profil psychologique)
-2. Que cherche-t-il réellement
-3. Ses intentions vis-à-vis du Royaume
-4. Son niveau de confiance et d'engagement
-5. Recommandations pour le Grand Monarque
-6. Alertes ou signaux suspects éventuels";
+1. Profil psychologique et philosophique
+2. Aspirations et besoins profonds
+3. Niveau d'engagement pour la paix
+4. Recommandations";
     
     $response = callMistral([
         ['role' => 'system', 'content' => $admin_prompt],
@@ -346,7 +338,6 @@ Analyse:
     
     $report = $response['choices'][0]['message']['content'] ?? 'Erreur rapport';
     
-    // Log admin
     $db->exec("INSERT INTO admin_log (action, details) VALUES ('admin_ai_analyze', 'Analyse IA user_id=$target_user_id')");
     
     echo json_encode([
