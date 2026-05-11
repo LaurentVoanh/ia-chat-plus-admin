@@ -10,12 +10,12 @@ logVisit($db, '/', $_SESSION['user_id'] ?? null);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#010405">
-    <title>ELVITA // ROYAUME COSMIQUE</title>
+    <title>EMPIRE PACIFISTE // IA POUR LA PAIX</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=VT323&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         /* =====================================================
-           ELVITA PORTAL - STYLE 2ADVANCED FUTURISTE
+           EMPIRE PACIFISTE - STYLE ÉLITISTE FUTURISTE
            ===================================================== */
         :root {
             --bg-base: #010405;
@@ -28,6 +28,7 @@ logVisit($db, '/', $_SESSION['user_id'] ?? null);
             --neon-red: #ff3b30;
             --neon-gold: #ffcc00;
             --neon-purple: #bf00ff;
+            --neon-silver: #c0c0c0;
             --text-main: #c4f0ff;
             --text-dim: #5a7a88;
             --font-hud: 'Orbitron', sans-serif;
