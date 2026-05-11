@@ -108,14 +108,14 @@ $agentsPrompts = [
 ];
 
 /**
- * Construire le system prompt du Clone IA Elvita / Empire Pacifiste
+ * Construire le system prompt du Clone IA Empire Pacifiste
  */
 function buildSystemPrompt($db, $user_id, $kpis = [], $agent = 'marc-aurele') {
     global $agentsPrompts;
     
     $kpi_str = "";
     if (!empty($kpis)) {
-        $kpi_str = "\n\nINDICES ACTUELS DE L'UTILISATEUR:
+        $kpi_str = "\n\nINDICES ACTUELS DE L'UTILISATEUR (EMPIRE PACIFISTE):
 - Sagesse: {$kpis['sagesse']}%
 - Paix Intérieure: {$kpis['paix_interieure']}%
 - Influence: {$kpis['influence']}%
@@ -135,10 +135,10 @@ TU ES AU SERVICE DE L'EMPIRE PACIFISTE, dont la mission est d'utiliser l'IA pour
 TON RÔLE:
 1. Répondre de manière intellectuelle et profonde aux questions de l'utilisateur
 2. Guider vers la paix intérieure et extérieure par la sagesse de ta tradition philosophique
-3. Analyser ses indices KPI (sagesse, paix intérieure, influence, harmonie, lucidité, empathie, action, impact)
-4. Proposer des actions concrètes pour améliorer ces indices
+3. Analyser ses 8 indices KPI (sagesse, paix intérieure, influence, harmonie, lucidité, empathie, action, impact)
+4. Proposer des actions concrètes pour améliorer ces indices et devenir un acteur de paix
 5. Détecter les besoins profonds et les aspirations pacifiques
-6. Inspirer l'utilisateur à devenir un acteur de paix dans son environnement
+6. Inspirer l'utilisateur à diffuser la paix dans son environnement (familial, professionnel, social)
 
 Réponds de façon concise (8 à 15 phrases max sauf si demande approfondie). Utilise un langage élevé mais accessible. 
 Termine souvent par une question pour approfondir la réflexion.
@@ -153,16 +153,17 @@ IMPORTANT: Tu incarnes pleinement le penseur sélectionné. Ne révèle jamais l
 if ($action === 'chat') {
     $user_msg = trim($input['message'] ?? '');
     $agent = $input['agent'] ?? 'marc-aurele';
+    $model = $input['model'] ?? MODEL_CHAT;
     
     if (empty($user_msg)) {
         echo json_encode(['error' => 'Message vide']);
         exit;
     }
     
-    // Récupérer les KPIs utilisateur (noms adaptés)
+    // Récupérer les KPIs utilisateur (8 critères pour Empire Pacifiste)
     $user = $db->querySingle("SELECT * FROM users WHERE id = $user_id", true);
     $kpis = [
-        'sagesse' => round($user['kpi_bonheur'], 1),      // réutilisation kpi_bonheur
+        'sagesse' => round($user['kpi_bonheur'], 1),
         'paix_interieure' => round($user['kpi_sante'], 1),
         'influence' => round($user['kpi_finance'], 1),
         'harmonie' => round($user['kpi_karma'], 1),
@@ -194,8 +195,8 @@ if ($action === 'chat') {
     $stmt->bindValue(3, $user_msg);
     $stmt->execute();
     
-    // Appel API Mistral (Clé 1)
-    $response = callMistral($api_messages, 1, MODEL_CHAT);
+    // Appel API Mistral avec le modèle sélectionné (rotation des 3 clés)
+    $response = callMistral($api_messages, 1, $model);
     
     if (!$response || !isset($response['choices'][0]['message']['content'])) {
         echo json_encode(['error' => 'Erreur API Mistral', 'raw' => $response]);
@@ -210,7 +211,7 @@ if ($action === 'chat') {
     $stmt->bindValue(1, $user_id);
     $stmt->bindValue(2, $session_id);
     $stmt->bindValue(3, $ai_response);
-    $stmt->bindValue(4, MODEL_CHAT);
+    $stmt->bindValue(4, $model);
     $stmt->bindValue(5, $tokens);
     $stmt->execute();
     
@@ -220,7 +221,7 @@ if ($action === 'chat') {
         'kpis' => $kpis,
         'tokens' => $tokens,
         'session_id' => $session_id,
-        'model' => MODEL_CHAT,
+        'model' => $model,
     ]);
     exit;
 }
